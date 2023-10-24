@@ -1,4 +1,4 @@
-namespace CryptoWalletFrontend.Models
+﻿namespace CryptoWalletFrontend.Models
 {
     public class ErrorViewModel
     {

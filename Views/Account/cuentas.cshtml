@@ -1,0 +1,251 @@
+﻿@model CryptoWalletFrontend.Models.AccountBalanceModel
+
+@{
+    ViewData["Title"] = "Mis cuentas";
+}
+
+<h1>Mis cuentas</h1>
+
+<table id="cuentas" class="table table-striped" style="width:100%"></table>
+
+<div id="modalDepositar" class="modal fade" tabindex="-1" role="dialog">
+    <div class="modal-dialog" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Depositar fondos</h5>
+                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+            </div>
+            <div class="modal-body">
+                <label for="monto">Monto:</label>
+                <input type="number" id="montoDeposito" class="form-control">
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-dismiss="modal">Cancelar</button>
+                <button type="button" class="btn btn-primary" onclick="realizarDeposito()">Guardar</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div id="modalRetirar" class="modal fade" tabindex="-1" role="dialog">
+    <div class="modal-dialog" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Retirar fondos <span id="tipoCuentaRetiro"></span></h5>
+                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+            </div>
+            <div class="modal-body">
+                <label for="monto">Monto:</label>
+                <input type="number" id="montoRetiro" class="form-control">
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-dismiss="modal">Cancelar</button>
+                <button type="button" class="btn btn-primary" onclick="realizarRetiro()">Retirar</button>
+            </div>
+        </div>
+    </div>
+</div>
+<div id="modalRespuesta" class="modal fade" tabindex="-1" role="dialog">
+    <div class="modal-dialog" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Confirmamos tu operacion</h5>
+                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+            </div>
+            <div class="modal-body">
+                <p id="mensajeModal"></p>
+            </div>
+        </div>
+    </div>
+</div>
+
+
+<script>
+   
+    var token = getCookie("Token");
+    var baseUrl = `https://localhost:7096/Account`;
+    var headers = { 'Authorization': 'Bearer ' + token };
+
+    let table = new DataTable('#cuentas', {
+
+        ajax: {
+            url: `https://localhost:7096/Account/balance`, 
+
+            headers: headers,
+            success: function (data) {
+                console.log("Respuesta exitosa:", data);
+              
+                var cuentas = [
+                    { Cuenta: 'Pesos', Saldo: data.Pesos },
+                    { Cuenta: 'Dólares', Saldo: data.Dolares },
+                    { Cuenta: 'BTC', Saldo: data.BTC }
+                ];
+
+                table.clear(); 
+                table.rows.add(cuentas); 
+                table.draw(); 
+            }
+        },
+
+        columns: [
+            { data: 'Cuenta', title: 'Cuenta' },
+            { data: 'Saldo', title: 'Saldo' },
+            {
+                data: null,
+                title: 'Depositar',
+                render: function (data) {
+                    return `<button class="btn btn-success" id="depositarButton" onclick="abrirModalDepositar('${data.Cuenta}')" data-account-type="${data.Cuenta}"">Depositar</button>`;
+                }
+            },
+            {
+                data: null,
+                title: 'Retirar',
+                render: function (data) {
+                    return `<button class="btn btn-danger" id="retirarButton" onclick="abrirModalRetirar('${data.Cuenta}')" data-account-type="${data.Cuenta}">Retirar</button>`;
+                }
+            }
+        ]
+    });
+
+    function abrirModalDepositar(tipoCuenta) {
+        console.log("Cuenta:", tipoCuenta);
+        var accountType;
+        if (tipoCuenta == 'Pesos') {
+            accountType = 1;
+        } else if (tipoCuenta == 'Dólares') {
+            accountType = 2;
+        } else if (tipoCuenta == 'BTC') {
+            accountType = 3;
+        }
+        console.log("CuentaTipoo:", accountType);
+
+        $('#depositarButton').data('account-type', accountType);
+        $('#modalDepositar').modal('show');
+    }
+
+    function abrirModalRetirar(tipoCuenta) {
+        console.log("Cuenta:", tipoCuenta);
+        var accountType;    
+        if (tipoCuenta == 'Pesos') {
+            accountType = 1;
+        } else if (tipoCuenta == 'Dólares') {
+            accountType = 2;
+        } else if (tipoCuenta == 'BTC') {
+            accountType = 3;
+        }
+   
+        $('#retirarButton').data('account-type', accountType);
+
+        $('#modalRetirar').modal('show');
+    }
+
+    function realizarDeposito() {
+
+        var monto = $('#monto').val();
+
+
+        $('#modalDepositar').modal('hide');
+    }
+
+    function mostrarMensajeEnModal(mensaje) {
+        $('#mensajeModal').text(mensaje);
+        $('#modalRespuesta').modal('show');
+    }
+
+    function realizarRetiro() {     
+        var montoRetiro = parseFloat($("#montoRetiro").val());
+       
+        var tipoCuenta = $('#retirarButton').data('account-type');
+        
+
+        var url = `${baseUrl}/Withdraw?amount=${montoRetiro}&accountType=${tipoCuenta}`;
+        console.log("URL de la solicitud:", url);
+      
+        $.ajax({
+            url: url,
+            headers: headers,
+            type: 'POST',
+            success: function (data) {
+                console.log("success: ", data);
+                console.log("success1: ", data.message);
+               
+                if (data.message) {                   
+                    var mensajeRespuesta = data.message;
+
+                    mostrarMensajeEnModal(mensajeRespuesta);                   
+                }
+                $('#modalRetirar').modal('hide');
+            },
+            error: function () {
+                //errores
+            }
+        });
+    }
+         
+    function realizarDeposito() {
+        var montoDeposito = parseFloat($("#montoDeposito").val());
+
+        var tipoCuenta = $('#depositarButton').data('account-type');
+
+        var identifier = "";
+
+        $.ajax({
+            url: `${baseUrl}/TipoCuentaXUs?accountType=${tipoCuenta}`,
+            headers: headers,
+            success: function (data) {
+                console.log("Respuesta exitosa2:", data);
+
+                if (tipoCuenta === 1 || tipoCuenta === 2) {
+                    // Si es cuenta de tipo 1 o 2, verifica si hay CBU o Alias
+                    if (data.cbu) {
+                        identifier = data.cbu;
+
+                    } else if (data.alias) {
+                        identifier = data.alias;
+                    }
+                } else if (tipoCuenta === 3) {
+                    // Si es cuenta de tipo 3, utiliza CryptoAddress
+                    identifier = data.cryptoAddress;
+
+                }
+                console.log("que identifier: ", identifier, montoDeposito);
+                hacerDeposito(identifier, montoDeposito);
+            },
+            error: function () {
+                //  errores 
+            }
+        });
+      
+    }
+
+    function hacerDeposito(identifier, montoDeposito) {
+
+        console.log("que identifier en llamada 2: ", identifier, montoDeposito);
+
+        $.ajax({
+            url: `${baseUrl}/Deposit?identifier=${identifier}&amount=${montoDeposito}`,
+            headers: headers,
+            type: 'POST',
+            success: function (data) {
+
+                if (data.message) {
+                    var mensajeRespuesta = data.message;
+
+                    mostrarMensajeEnModal(mensajeRespuesta);
+                }
+                $('#modalDepositar').modal('hide');
+            },
+            error: function () {
+                // Maneja errores aquí
+            }
+        });
+    }
+       
+    
+</script>
