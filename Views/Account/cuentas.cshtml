@@ -1,0 +1,450 @@
+﻿@model CryptoWalletFrontend.Models.AccountBalanceModel
+
+@{
+    ViewData["Title"] = "Mis cuentas";
+}
+
+<h1>Mis cuentas</h1>
+
+<table id="cuentas" class="table table-striped" style="width:100%"></table>
+
+<div id="modalDepositar" class="modal fade" tabindex="-1" role="dialog">
+    <div class="modal-dialog" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Depositar fondos</h5>
+                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+            </div>
+            <div class="modal-body">
+                <label for="monto">Monto:</label>
+                <input type="number" id="montodepo" class="form-control">
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-dismiss="modal">Cancelar</button>
+                <button type="button" class="btn btn-primary" data-operation-type="depositar" onclick="datosCuenta(this)">Depositar</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div id="modalRetirar" class="modal fade" tabindex="-1" role="dialog">
+    <div class="modal-dialog" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Retirar fondos <span id="tipoCuentaRetiro"></span></h5>
+                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+            </div>
+            <div class="modal-body">
+                <label for="monto">Monto:</label>
+                <input type="number" id="montoRetiro" class="form-control">
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-dismiss="modal">Cancelar</button>
+                <button type="button" class="btn btn-primary" onclick="realizarRetiro()">Retirar</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div id="modalRespuesta" class="modal fade" tabindex="-1" role="dialog">
+    <div class="modal-dialog" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Confirmamos tu operacion</h5>
+                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+            </div>
+            <div class="modal-body">
+                <p id="mensajeModal"></p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="modal fade" id="modalTransferir" tabindex="-1" role="dialog" aria-labelledby="modalTransferirLabel" aria-hidden="true">
+    <div class="modal-dialog" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="modalTransferirLabel">Transferir Fondos</h5>
+                <button type="button" class="close" data-dismiss="modal" aria-label="Cerrar">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+            </div>
+            <div class="modal-body">
+                <form>
+                    <div class="form-group">
+                        <label for="cuentaDestino">Cuenta Destino</label>
+                        <input type="text" class="form-control" id="cuentaDestino" placeholder="Ingresa la cuenta destino">
+                    </div>
+                    <div class="form-group">
+                        <label for="monto">Monto</label>
+                        <input type="number" class="form-control" id="montotransfer" placeholder="Ingresa el monto">
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-dismiss="modal">Cancelar</button>
+                <button type="button" class="btn btn-primary" id="realizarTransferencia"  data-operation-type="transferir" onclick="datosCuenta(this)">Transferir</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="modal fade" id="movimientosModal" tabindex="-1" role="dialog" aria-labelledby="exampleModalLabel" aria-hidden="true">
+    <div class="modal-dialog" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Movimientos</h5>
+                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+            </div>
+            <div class="modal-body">
+                <div id="movimientosTableContainer">
+                    <!-- DataTables llenará esta área con la tabla -->
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+
+
+<link rel="stylesheet" type="text/css" href="https://cdn.datatables.net/1.10.24/css/jquery.dataTables.min.css">
+<script type="text/javascript" charset="utf8" src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+<script type="text/javascript" charset="utf8" src="https://cdn.datatables.net/1.10.24/js/jquery.dataTables.min.js"></script>
+
+<script>
+   
+    var token = getCookie("Token");
+    var baseUrl = `https://localhost:7096/Account`;
+    var headers = { 'Authorization': 'Bearer ' + token };
+
+    var cuenta = "";
+
+    let table = new DataTable('#cuentas', {
+
+        ajax: {
+            url: `https://localhost:7096/Account/balance`, 
+
+            headers: headers,
+            success: function (data) {
+                console.log("Respuesta exitosa:", data);
+              
+                var cuentas = [
+                    { Cuenta: 'Pesos', Saldo: data.Pesos },
+                    { Cuenta: 'Dólares', Saldo: data.Dolares },
+                    { Cuenta: 'BTC', Saldo: data.BTC }
+                ];
+
+                table.clear(); 
+                table.rows.add(cuentas); 
+                table.draw(); 
+            }
+        },
+
+        columns: [
+            { data: 'Cuenta', title: 'Cuenta' },
+            { data: 'Saldo', title: 'Saldo' },
+            {
+                data: null,
+                title: 'Depositar',
+                render: function (data) {
+                    return `<button class="btn btn-info" id="depositarButton"  onclick="abrirModalDepositar('${data.Cuenta}')" data-account-type="${data.Cuenta}"">Depositar</button>`;
+                }
+            },
+            {
+                data: null,
+                title: 'Retirar',
+                render: function (data) {
+                    return `<button class="btn btn-warning" id="retirarButton" onclick="abrirModalRetirar('${data.Cuenta}')" data-account-type="${data.Cuenta}">Retirar</button>`;
+                }
+            },
+            {
+                data: null,
+                title: 'Transferir',
+                render: function (data) {
+                    return `<button class="btn btn-secondary" id="transferirButton"  onclick="abrirModalTransferir('${data.Cuenta}')" data-account-type="${data.Cuenta}">Transferir</button>`;
+                },
+            },
+            {
+                data: null,
+                title: 'Movimientos',
+                render: function (data) {
+                    return `<button class="btn btn-dark" id="movimientosButton" data-operation-type="movimientos" onclick="abrirModalMovimientos('${data.Cuenta}')" data-account-type="${data.Cuenta}">Movimientos</button>`;
+                },
+            }
+        ]
+    });
+
+    function abrirModalDepositar(tipoCuenta) {
+        console.log("Cuenta abrirModalDepositar:", tipoCuenta);
+        var accountType;
+        if (tipoCuenta == 'Pesos') {
+            accountType = 1;
+        } else if (tipoCuenta == 'Dólares') {
+            accountType = 2;
+        } else if (tipoCuenta == 'BTC') {
+            accountType = 3;
+        }
+        console.log("CuentaTipoo:", accountType);
+
+        $('#depositarButton').data('account-type', accountType);
+        $('#modalDepositar').modal('show');
+    }
+
+    function abrirModalRetirar(tipoCuenta) {
+        console.log("Cuenta abrirModalRetirar:", tipoCuenta);
+        var accountType;    
+        if (tipoCuenta == 'Pesos') {
+            accountType = 1;
+        } else if (tipoCuenta == 'Dólares') {
+            accountType = 2;
+        } else if (tipoCuenta == 'BTC') {
+            accountType = 3;
+        }
+   
+        $('#retirarButton').data('account-type', accountType);
+
+        $('#modalRetirar').modal('show');
+    }
+
+    function abrirModalTransferir(tipoCuenta) {
+        console.log("Cuenta abrirModalTransferir:", tipoCuenta);
+        var accountType;
+        if (tipoCuenta == 'Pesos') {
+            accountType = 1;
+        } else if (tipoCuenta == 'Dólares') {
+            accountType = 2;
+        } else if (tipoCuenta == 'BTC') {
+            accountType = 3;
+        }
+
+        $('#transferirButton').data('account-type', accountType);
+
+        $('#modalTransferir').modal('show');
+    }
+
+    function abrirModalMovimientos(tipoCuenta) {
+        console.log("Cuenta abrirModalMovimientos:", tipoCuenta);
+        var accountType;
+        if (tipoCuenta == 'Pesos') {
+            accountType = 1;
+        } else if (tipoCuenta == 'Dólares') {
+            accountType = 2;
+        } else if (tipoCuenta == 'BTC') {
+            accountType = 3;
+        }
+
+        $('#movimientosButton').data('account-type', accountType);           
+        var button = event.currentTarget;      
+        datosCuenta(button);
+    }
+
+    function mostrarMensajeEnModal(mensaje) {
+        $('#mensajeModal').text(mensaje);
+        $('#modalRespuesta').modal('show');
+    }
+
+    function realizarRetiro() {     
+        var montoRetiro = parseFloat($("#montoRetiro").val());
+       
+        var tipoCuenta = $('#retirarButton').data('account-type');
+        
+        var url = `${baseUrl}/Withdraw?amount=${montoRetiro}&accountType=${tipoCuenta}`;      
+      
+        $.ajax({
+            url: url,
+            headers: headers,
+            type: 'POST',
+            success: function (data) {
+                console.log("success: ", data);
+                console.log("success1: ", data.message);
+               
+                if (data.message) {                   
+                    var mensajeRespuesta = data.message;
+
+                    mostrarMensajeEnModal(mensajeRespuesta);                   
+                }
+                $('#modalRetirar').modal('hide');
+            },
+            error: function () {
+                //errores
+            }
+        });
+    }
+         
+    function datosCuenta(button) {
+      
+        var operationType = $(button).data('operation-type');        
+        var identifier = "";
+        var tipoCuenta = "";
+
+        if (operationType === "depositar") {
+            var tipoCuenta = $('#depositarButton').data('account-type');
+            console.log("el tipo de tipoCuenta", tipoCuenta)
+        } else if (operationType === "transferir") {
+            var tipoCuenta = $('#transferirButton').data('account-type');
+            console.log("el tipo de tipoCuenta", tipoCuenta)
+        } else if (operationType === "movimientos") {
+            var tipoCuenta = $('#movimientosButton').data('account-type');
+            console.log("el tipo de tipoCuenta", tipoCuenta)
+        }
+
+        $.ajax({
+            url: `${baseUrl}/AccountXUser?accountType=${tipoCuenta}`,
+            headers: headers,
+            success: function (data) {                            
+                cuenta = data;
+                console.log("cuenta: ", cuenta);
+                if (tipoCuenta === 1 || tipoCuenta === 2) {
+                    // Si es cuenta de tipo 1 o 2, verifica si hay CBU o Alias
+                    if (data.cbu) {
+                        identifier = data.cbu;
+
+                    } else if (data.alias) {
+                        identifier = data.alias;
+                    }                  
+                } else if (tipoCuenta === 3) {
+                    // Si es cuenta de tipo 3, utiliza CryptoAddress
+                    identifier = data.cryptoAddress;                  
+                }
+             
+                if (operationType === "depositar") {
+                    hacerDeposito(identifier);
+                } else if (operationType === "transferir") {
+                    tranferir(identifier)                
+                } else if (operationType === "movimientos") {
+                    movimientos();
+                }             
+            },
+            error: function () {
+                //  errores 
+            }
+        });
+      
+    }
+
+    function hacerDeposito(identifier) {
+
+        var montoDeposito = parseFloat($("#montodepo").val());
+
+        $.ajax({
+            url: `${baseUrl}/Deposit?identifier=${identifier}&amount=${montoDeposito}`,
+            headers: headers,
+            type: 'POST',
+            success: function (data) {
+
+                if (data.message) {
+                    var mensajeRespuesta = data.message;
+
+                    mostrarMensajeEnModal(mensajeRespuesta);
+                }
+                $('#modalDepositar').modal('hide');
+            },
+            error: function () {
+                //  errores 
+            }
+        });
+    }
+
+    function tranferir(identifier) {
+       
+        var amount1 = parseFloat($("#montotransfer").val());
+
+        var accountDestino = $('#cuentaDestino').val();
+
+        console.log(identifier, accountDestino, amount1);
+
+            $.ajax({
+                url: `https://localhost:7096/Operation/transfer`,
+                headers: headers,
+                type: 'POST',
+                data: JSON.stringify({
+                sourceAliasOrCBU: identifier,
+                destinationAliasOrCBU: accountDestino,
+                    amount: amount1
+                
+                }),
+                contentType: 'application/json',
+                success: function (data) {
+
+                    if (data.message) {
+
+
+                        var mensajeRespuesta = data.message;
+
+                        mostrarMensajeEnModal(mensajeRespuesta);
+                    }
+                $('#modalTransferir').modal('hide');
+                },
+                error: function () {
+                    //  errores
+                }
+            });
+    }
+
+    function movimientos(){
+       
+        var userId = cuenta.userId
+
+        $.ajax({
+            
+            url: `https://localhost:7096/Operation/historyCuentas?id=${userId}`,
+            headers: headers,
+            type: 'GET',                      
+            success: function (data) {
+                console.log("dataMov: ", data);
+                mostrarMovimientos(data);
+            },
+            error: function () {
+                //  errores
+            }
+           
+        });
+    }
+
+    function mostrarMovimientos(data) {
+        console.log("mostrarMovimientos: ", data);
+        var datoCta1 = cuenta.alias;
+        var datoCta2 = cuenta.cbu;
+        var datoCta3 = cuenta.cryptoAddress;
+
+        var movimientos = data.$values;
+        var tableHtml = '<table id="movimientosTable" class="table">';
+        tableHtml += '<thead><tr><th>Fecha</th><th>Tipo de Operación</th><th>Monto</th></tr></thead>';
+        tableHtml += '<tbody>';
+
+        movimientos.forEach(function (movimiento) {
+            var fecha = new Date(movimiento.timestamp);
+            var fechaFormateada = fecha.toISOString().split('T')[0];
+
+            if (
+                movimiento.sourceAccountName === datoCta1 ||
+                movimiento.sourceAccountName === datoCta2 ||
+                movimiento.sourceAccountName === datoCta3 ||
+                movimiento.destinationAccountName === datoCta1 ||
+                movimiento.destinationAccountName === datoCta2 ||
+                movimiento.destinationAccountName === datoCta3
+            ) {
+                tableHtml += '<tr>';
+                tableHtml += '<td>' + fechaFormateada + '</td>';
+                tableHtml += '<td>' + movimiento.operationType + '</td>';
+                tableHtml += '<td>' + movimiento.amount + '</td>';
+                tableHtml += '</tr>';
+            }
+        });
+
+        tableHtml += '</tbody>';
+        tableHtml += '</table>';
+        $('#movimientosTableContainer').html(tableHtml);
+       
+        $('#movimientosModal').modal('show');
+    }
+
+</script>
