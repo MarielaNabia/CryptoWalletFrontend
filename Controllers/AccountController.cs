@@ -1,4 +1,5 @@
 ﻿using CryptoWalletFrontend.Data.Base;
+using CryptoWalletFrontend.Data.DTOs;
 using CryptoWalletFrontend.Models;
 using Microsoft.AspNetCore.Mvc;
 using System.Threading.Tasks;
@@ -20,21 +21,34 @@ namespace CryptoWalletFrontend.Controllers
        
 
         [HttpPost]
-        public IActionResult Deposit(double amount)
+        public IActionResult Deposit(DepositDto depositDto)
         {
-            // Lógica para depositar el monto en la cuenta seleccionada.
-            // Puedes manejar el resultado y mostrar un mensaje en la vista.
-            var message = $"Se depositaron ${amount} con éxito.";
+            var token = HttpContext.Session.GetString("Token");
+            var baseApi = new BaseApi(_httpClient);
+            var cuentas = baseApi.PostToApi("Account/Deposit", depositDto, token);
+            var message = $"Se depositaron ${depositDto.Amount} con éxito.";
             return Json(new { success = true, message });
         }
 
         [HttpPost]
-        public IActionResult Withdraw(double amount)
+        public IActionResult Withdraw(WithdrawDto withdrawDto)
         {
-            // Lógica para retirar el monto de la cuenta seleccionada.
-            // Puedes manejar el resultado y mostrar un mensaje en la vista.
-            var message = $"Se retiraron ${amount} con éxito.";
+            var token = HttpContext.Session.GetString("Token");
+            var baseApi = new BaseApi(_httpClient);
+            var cuentas = baseApi.PostToApi("Account/Withdraw", withdrawDto, token);
+            var message = $"Se retiraron ${withdrawDto.Amount} con éxito.";
             return Json(new { success = true, message });
         }
+
+        [HttpPost]
+        public IActionResult Transfer(TransferDto transferDto)
+        {
+            var token = HttpContext.Session.GetString("Token");
+            var baseApi = new BaseApi(_httpClient);
+            var cuentas = baseApi.PostToApi("Operation/Transfer", transferDto, token);
+            var message = $"Se transfirio de la cuenta ${transferDto.SourceIdentifier} a la cuenta ${transferDto.DestinationIdentifier} con éxito.";
+            return Json(new { success = true, message });
+        }
+
     }
 }

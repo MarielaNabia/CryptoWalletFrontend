@@ -1,0 +1,97 @@
+﻿@*
+    For more information on enabling MVC for empty projects, visit https://go.microsoft.com/fwlink/?LinkID=397860
+*@
+@{
+}
+<div id="cotizacionesContainer" class="row" style="display: flex; flex-wrap: wrap; justify-content: space-around;"></div>
+<div id="cotizacionesContainer1" class="row"></div>
+
+
+<script>
+    var token = getCookie("Token");
+    var headers = { 'Authorization': 'Bearer ' + token };
+
+    $(document).ready(function () {
+        cotizacionesDolar();
+        cotizacionesCripto();
+    });
+
+    function cotizacionesDolar() {
+        var tiposDeCambio = ["oficial", "blue", "bolsa", "contadoconliqui", "mayorista"];
+        var cotizacionesContainer = document.getElementById("cotizacionesContainer");
+
+        tiposDeCambio.forEach(function (tipoCambio) {
+            $.ajax({
+                url: `https://localhost:7096/api/dolar/get-dolar-data/${tipoCambio}`,
+                headers: headers,
+                type: 'GET',
+                success: function (data) {
+                    if (data.message) {
+                        var mensajeRespuesta = data.message;
+                        mostrarMensajeEnModal(mensajeRespuesta);
+                    } else {
+                        //  tarjeta con la información de la cotización
+                        var card = document.createElement("div");
+                        card.className = "col-md-4";
+                        card.innerHTML = `
+                                <div class="card m-4">
+                                    <div class="card-body text-center">
+                                    <h5 class="card-title">Cotización Dólar (${tipoCambio.charAt(0).toUpperCase() + tipoCambio.slice(1)})</h5>
+                                    <p class="card-text">Compra: $${data.compra}</p>
+                                    <p class="card-text">Venta: $${data.venta}</p>
+                                </div>
+                            </div>
+                        `;
+
+                       
+                        cotizacionesContainer.appendChild(card);
+                    }
+                },
+                error: function () {
+                    // errores 
+                }
+            });
+        });
+        
+    }
+
+    function cotizacionesCripto() {
+        var tiposCripto = ["1", "2", "3"];
+        var cotizacionesContainer = document.getElementById("cotizacionesContainer1");
+
+        tiposCripto.forEach(function (Cripto) {
+            $.ajax({
+                url: `https://localhost:7096/api/cripto/get-cryptocurrency/${Cripto}`,
+                headers: headers,
+                type: 'GET',
+                success: function (data) {
+                    console.log("como viene data: ", data);
+                    if (data.message) {
+                        var mensajeRespuesta = data.message;
+                        mostrarMensajeEnModal(mensajeRespuesta);
+                    } else {
+                        //  tarjeta con la información de la cotización
+                        var card1 = document.createElement("div");
+                        card1.className = "col-md-4";
+                        card1.innerHTML = `
+                                            <div class="text-center">
+                                                    <img src="${data.logo}" class="card-img-top mx-auto" alt="${data.name} Logo" style="max-width: 70px; max-height: 70px;">
+                                            <div class="card-body">
+                                                <h5 class="card-title">${data.name} (${data.symbol})</h5>
+                                                <p class="card-text">Precio USD: $${data.priceUSD}</p>
+                                            </div>
+                                        </div>
+                                    `;
+
+                        
+                        cotizacionesContainer1.appendChild(card1);
+                    }
+                },
+                error: function () {
+                    // errores 
+                }
+            });
+        });
+    }
+    
+</script> 

@@ -3,7 +3,7 @@
     public class CryptocurrencyQuoteModel
     {
         public double BtcQuote { get; set; }
-        public double OtherCrypto1Quote { get; set; }
-        public double OtherCrypto2Quote { get; set; }
+        public double BtcQuoteBuy { get; set; }
+        public double BtcQuoteoSell { get; set; }
     }
 }
